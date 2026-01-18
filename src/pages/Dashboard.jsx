@@ -40,7 +40,10 @@ export default function Dashboard() {
         setLoading(false);
       })
       .catch((err) => {
-        console.error(err);
+        console.error("Dashboard load failed:", err);
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        navigate("/");
         setLoading(false);
       });
   }, [navigate]);

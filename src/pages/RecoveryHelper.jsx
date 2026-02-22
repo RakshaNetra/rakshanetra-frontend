@@ -195,7 +195,7 @@ export default function RecoveryHelper() {
                           dangerouslySetInnerHTML={{
                             __html: warn.replace(
                               /\*\*(.*?)\*\*/g,
-                              '<strong class="text-white">$1</strong>'
+                              '<strong class="text-white">$1</strong>',
                             ),
                           }}
                         />
@@ -224,6 +224,39 @@ export default function RecoveryHelper() {
 
             {/* RIGHT COL: Sidebar Info */}
             <div className="space-y-6">
+              {/* risk_level */}
+              {(() => {
+                const risk = result.json_data.risk_level?.toLowerCase() || "";
+
+                return (
+                  <div
+                    className={`flex items-center gap-3 p-4 rounded-xl border ${
+                      risk.includes("high")
+                        ? "bg-red-500/5 border-red-500/20"
+                        : risk.includes("medium")
+                          ? "bg-yellow-500/5 border-yellow-500/20"
+                          : "bg-green-500/5 border-green-500/20"
+                    }`}
+                  >
+                    <span
+                      className={`w-3 h-3 rounded-full ${
+                        risk.includes("high")
+                          ? "bg-red-500"
+                          : risk.includes("medium")
+                            ? "bg-yellow-500"
+                            : "bg-green-500"
+                      }`}
+                    ></span>
+                    <span className="text-sm text-gray-300">
+                      Risk Level:{" "}
+                      <strong className="text-white">
+                        {result.json_data.risk_level}
+                      </strong>
+                    </span>
+                  </div>
+                );
+              })()}
+
               {/* Quick Actions */}
               <div className="bg-[#121212] border border-white/10 rounded-xl p-5 shadow-xl">
                 <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
@@ -261,7 +294,7 @@ export default function RecoveryHelper() {
                           <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
                           {item}
                         </div>
-                      )
+                      ),
                     )}
                   </div>
                 </div>
@@ -287,7 +320,7 @@ export default function RecoveryHelper() {
                           dangerouslySetInnerHTML={{
                             __html: rec.replace(
                               /\*\*(.*?)\*\*/g,
-                              '<strong class="text-green-300">$1</strong>'
+                              '<strong class="text-green-300">$1</strong>',
                             ),
                           }}
                         />
@@ -348,7 +381,7 @@ function GuideSection({ title, data }) {
                       dangerouslySetInnerHTML={{
                         __html: step.replace(
                           /\*\*(.*?)\*\*/g,
-                          '<strong class="text-white">$1</strong>'
+                          '<strong class="text-white">$1</strong>',
                         ),
                       }}
                     />
@@ -373,7 +406,7 @@ function GuideSection({ title, data }) {
                     dangerouslySetInnerHTML={{
                       __html: tip.replace(
                         /\*\*(.*?)\*\*/g,
-                        '<strong class="text-amber-100">$1</strong>'
+                        '<strong class="text-amber-100">$1</strong>',
                       ),
                     }}
                   />

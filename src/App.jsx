@@ -7,6 +7,7 @@ import Profile from "./pages/Profile";
 import DeviceDetailsPage from "./pages/Device";
 import RecoveryHelper from "./pages/RecoveryHelper";
 import ChatBot from "./pages/ChatBot";
+import Osint from "./pages/Osint";
 import "./App.css";
 
 // 1. Helper to check if user is authenticated
@@ -41,6 +42,7 @@ function App() {
         <Route path="/device" element={<DeviceDetailsPage />} />
         <Route path="/chat" element={<ChatBot />} />
         <Route path="/recovery" element={<RecoveryHelper />} />
+        <Route path="/osint" element={<Osint />} />
       </Route>
     </Routes>
   );

@@ -33,7 +33,7 @@ export const login = async (username, password) => {
     throw new Error(
       error.response?.data?.detail?.[0]?.msg ||
         error.response?.data?.message ||
-        "Login failed"
+        "Login failed",
     );
   }
 };
@@ -44,7 +44,7 @@ export const resendOtp = async (email) => {
     return response.data;
   } catch (error) {
     throw new Error(
-      error.response?.data?.detail?.[0]?.msg || "Failed to resend OTP"
+      error.response?.data?.detail?.[0]?.msg || "Failed to resend OTP",
     );
   }
 };
@@ -68,7 +68,7 @@ export const resetPassword = async (email, otp, new_password) => {
     return response.data;
   } catch (error) {
     throw new Error(
-      error.response?.data?.detail?.[0]?.msg || "Reset password failed"
+      error.response?.data?.detail?.[0]?.msg || "Reset password failed",
     );
   }
 };
@@ -78,12 +78,12 @@ export const changePassword = async (current_password, new_password) => {
     const response = await API.post(
       "/change-password",
       { current_password, new_password },
-      getAuthHeaders()
+      getAuthHeaders(),
     );
     return response.data;
   } catch (error) {
     throw new Error(
-      error.response?.data?.detail?.[0]?.msg || "Change password failed"
+      error.response?.data?.detail?.[0]?.msg || "Change password failed",
     );
   }
 };
@@ -111,15 +111,15 @@ export const initiateRecovery = async (platform, lang = "English") => {
     // Platform and lang are passed as query parameters
     const response = await API.post(
       `/recovery/initiate?platform=${encodeURIComponent(
-        platform
+        platform,
       )}&lang=${encodeURIComponent(lang)}`,
       {},
-      getAuthHeaders()
+      getAuthHeaders(),
     );
     return response.data;
   } catch (error) {
     throw new Error(
-      error.response?.data?.detail?.[0]?.msg || "Failed to initiate recovery"
+      error.response?.data?.detail?.[0]?.msg || "Failed to initiate recovery",
     );
   }
 };
@@ -146,12 +146,12 @@ export const sendChatMessage = async (message, files = []) => {
     const response = await API.post(
       "/rakshamitra/chat",
       formData,
-      getAuthHeaders(null)
+      getAuthHeaders(null),
     );
     return response.data;
   } catch (error) {
     throw new Error(
-      error.response?.data?.detail?.[0]?.msg || "Failed to send message"
+      error.response?.data?.detail?.[0]?.msg || "Failed to send message",
     );
   }
 };
@@ -161,7 +161,7 @@ export const getChatHistory = async (limit = 50, offset = 0) => {
     const response = await API.post(
       "/rakshamitra/history",
       { limit, offset },
-      getAuthHeaders()
+      getAuthHeaders(),
     );
     return response.data;
   } catch (error) {
@@ -174,7 +174,7 @@ export const endChatSession = async () => {
     const response = await API.post(
       "/rakshamitra/end_session",
       {},
-      getAuthHeaders()
+      getAuthHeaders(),
     );
     return response.data;
   } catch (error) {
@@ -205,7 +205,7 @@ export const logoutDevice = async (session_id) => {
   const response = await API.post(
     "/logout-device",
     { session_id },
-    getAuthHeaders()
+    getAuthHeaders(),
   );
   return response.data;
 };
@@ -213,4 +213,25 @@ export const logoutDevice = async (session_id) => {
 export const logoutAll = async () => {
   const response = await API.post("/logout-all", {}, getAuthHeaders());
   return response.data;
+};
+
+/**
+ * OSINT SCANNER
+ */
+export const runOsintScan = async (formData) => {
+  try {
+    // Pass null as contentType so the browser auto-sets multipart/form-data with boundaries
+    const response = await API.post(
+      "/osint/scan",
+      formData,
+      getAuthHeaders(null),
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.detail?.[0]?.msg ||
+        error.response?.data?.message ||
+        "OSINT scan failed",
+    );
+  }
 };

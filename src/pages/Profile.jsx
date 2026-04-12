@@ -8,6 +8,7 @@ import {
   getProfile,
 } from "../services/api";
 import { useNavigate, Link } from "react-router-dom";
+import { parseUTC } from "../lib/utils";
 import {
   User,
   Mail,
@@ -36,17 +37,47 @@ export default function Profile() {
   const [passwords, setPasswords] = useState({ current: "", new: "" });
   const [loading, setLoading] = useState(true);
 
+  const [page, setPage] = useState(1);
+  const limit = 5;
+
+  const sortedSessions = [...sessions].sort(
+    (a, b) => new Date(b.last_activity) - new Date(a.last_activity),
+  );
+
+  const paginatedSessions = sortedSessions.slice(
+    (page - 1) * limit,
+    page * limit,
+  );
+
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = async () => {
+    // Load from cache first for instant UI
+    const cachedProfile = localStorage.getItem("profile_cache");
+    const cachedSessions = localStorage.getItem("sessions_cache");
+
+    if (cachedProfile && cachedSessions) {
+      const parsedProfile = JSON.parse(cachedProfile);
+      setUserInfo(parsedProfile);
+      setProfileForm({
+        full_name: parsedProfile.full_name || "",
+        profile_pic_url: parsedProfile.profile_pic_url || "",
+        emergency_contacts: parsedProfile.emergency_contacts || [],
+      });
+      setSessions(JSON.parse(cachedSessions));
+      setLoading(false);
+    }
+
     try {
       const [profileRes, sessionsRes] = await Promise.all([
         getProfile(),
         getSessions(),
       ]);
       const userData = profileRes.data;
+
+      // Update state
       setUserInfo(userData);
       setProfileForm({
         full_name: userData.full_name || "",
@@ -54,6 +85,10 @@ export default function Profile() {
         emergency_contacts: userData.emergency_contacts || [],
       });
       setSessions(sessionsRes.data || []);
+
+      // Update cache
+      localStorage.setItem("profile_cache", JSON.stringify(userData));
+      localStorage.setItem("sessions_cache", JSON.stringify(sessionsRes.data));
     } catch (error) {
       console.error("Failed to load data", error);
     } finally {
@@ -121,7 +156,7 @@ export default function Profile() {
 
   const removeContact = (index) => {
     const updated = profileForm.emergency_contacts.filter(
-      (_, i) => i !== index
+      (_, i) => i !== index,
     );
     setProfileForm({ ...profileForm, emergency_contacts: updated });
   };
@@ -187,15 +222,19 @@ export default function Profile() {
 
               <div className="space-y-3 text-left bg-black/30 p-4 rounded-lg border border-white/5 text-sm">
                 <div className="flex items-center gap-3 text-gray-400">
-                  <Mail className="w-4 h-4" /> {userInfo?.email}
+                  <Mail className="w-4 h-4 text-cyan-500" /> {userInfo?.email}
                 </div>
                 <div className="flex items-center gap-3 text-gray-400">
-                  <Shield className="w-4 h-4" />{" "}
+                  <Shield className="w-4 h-4 text-purple-500" />{" "}
                   {userInfo?.is_admin ? "Administrator" : "User"}
                 </div>
                 <div className="flex items-center gap-3 text-gray-400">
-                  <Clock className="w-4 h-4" /> Joined{" "}
-                  {new Date(userInfo?.joined_at).toLocaleDateString()}
+                  <Clock className="w-4 h-4 text-green-500" /> Joined{" "}
+                  {parseUTC(userInfo?.joined_at).toLocaleDateString("en-IN", {
+                    timeZone: "Asia/Kolkata",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </div>
               </div>
             </div>
@@ -346,7 +385,7 @@ export default function Profile() {
               </div>
 
               <div className="space-y-3">
-                {sessions.map((session) => (
+                {paginatedSessions.map((session) => (
                   <div
                     key={session.session_id}
                     className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white/5 p-4 rounded-xl border border-white/5 hover:border-white/10 transition"
@@ -370,7 +409,14 @@ export default function Profile() {
                         </div>
                         <p className="text-xs text-gray-500 mt-1">
                           Last Active:{" "}
-                          {new Date(session.last_activity).toLocaleString()}
+                          {parseUTC(session.last_activity).toLocaleString(
+                            "en-IN",
+                            {
+                              timeZone: "Asia/Kolkata",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )}
                         </p>
                       </div>
                     </div>
@@ -382,6 +428,23 @@ export default function Profile() {
                     </button>
                   </div>
                 ))}
+                <div className="flex justify-between mt-4">
+                  <button
+                    disabled={page === 1}
+                    onClick={() => setPage((p) => p - 1)}
+                    className="px-3 py-1 bg-white/5 border border-white/10 rounded disabled:opacity-30"
+                  >
+                    Previous
+                  </button>
+
+                  <button
+                    disabled={page * limit >= sessions.length}
+                    onClick={() => setPage((p) => p + 1)}
+                    className="px-3 py-1 bg-white/5 border border-white/10 rounded disabled:opacity-30"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import { fetchDashboardData } from "../services/api";
 import { Link, useNavigate } from "react-router-dom";
+import { parseUTC } from "../lib/utils";
 import {
-  LineChart,
-  Line,
   XAxis,
-  YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
@@ -14,18 +12,15 @@ import {
 } from "recharts";
 import {
   Shield,
+  Search,
   Smartphone,
   Activity,
   User,
-  MapPin,
-  Clock,
   LogOut,
-  AlertTriangle,
   Wifi,
   Globe,
   Cpu,
   Bot,
-  LifeBuoy,
 } from "lucide-react";
 
 export default function Dashboard() {
@@ -34,16 +29,27 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // 1. Instantly load cached data if it exists
+    const cachedData = localStorage.getItem("dashboard_cache");
+    if (cachedData) {
+      setDashboardData(JSON.parse(cachedData));
+      setLoading(false);
+    }
+
+    // 2. Fetch fresh data in the background
     fetchDashboardData()
       .then((res) => {
         setDashboardData(res.data);
+        localStorage.setItem("dashboard_cache", JSON.stringify(res.data));
         setLoading(false);
       })
       .catch((err) => {
         console.error("Dashboard load failed:", err);
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
-        navigate("/");
+        if (!cachedData) {
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+          navigate("/");
+        }
         setLoading(false);
       });
   }, [navigate]);
@@ -74,7 +80,8 @@ export default function Dashboard() {
   const activeSessions = sessions.filter((s) => s.is_active).length;
   const totalSessions = sessions.length;
   const recentActivityTime = activity_logs[0]
-    ? new Date(activity_logs[0].timestamp).toLocaleTimeString([], {
+    ? parseUTC(activity_logs[0].timestamp).toLocaleTimeString("en-IN", {
+        timeZone: "Asia/Kolkata",
         hour: "2-digit",
         minute: "2-digit",
       })
@@ -85,7 +92,8 @@ export default function Dashboard() {
     .slice()
     .reverse()
     .map((log) => ({
-      time: new Date(log.timestamp).toLocaleTimeString([], {
+      time: parseUTC(log.timestamp).toLocaleTimeString("en-IN", {
+        timeZone: "Asia/Kolkata",
         hour: "2-digit",
         minute: "2-digit",
       }),
@@ -241,43 +249,58 @@ export default function Dashboard() {
                 Recent Sessions
               </h3>
               <div className="space-y-3">
-                {sessions.slice(0, 5).map((session) => (
-                  <div
-                    key={session._id}
-                    className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/5 hover:border-white/10 transition"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-2 h-2 rounded-full ${
-                          session.is_active
-                            ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"
-                            : "bg-gray-600"
-                        }`}
-                      ></div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-200">
-                          {session.device_info.user_agent.split("/")[0]}
+                {[...sessions]
+                  .sort(
+                    (a, b) =>
+                      new Date(b.last_activity) - new Date(a.last_activity),
+                  )
+                  .slice(0, 12)
+                  .map((session) => (
+                    <div
+                      key={session._id}
+                      className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/5 hover:border-white/10 transition"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            session.is_active
+                              ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"
+                              : "bg-gray-600"
+                          }`}
+                        ></div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-200">
+                            {session.device_info.user_agent}
+                          </p>
+                          <p className="text-xs text-gray-500 font-mono">
+                            {session.ip_address}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-400">
+                          {parseUTC(session.last_activity).toLocaleDateString(
+                            "en-IN",
+                            {
+                              timeZone: "Asia/Kolkata",
+                            },
+                          )}
                         </p>
-                        <p className="text-xs text-gray-500 font-mono">
-                          {session.ip_address}
+                        <p className="text-xs text-gray-600">
+                          {parseUTC(session.last_activity).toLocaleTimeString(
+                            "en-IN",
+                            {
+                              timeZone: "Asia/Kolkata",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )}
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs text-gray-400">
-                        {new Date(session.last_activity).toLocaleDateString()}
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        {new Date(session.last_activity).toLocaleTimeString(
-                          [],
-                          { hour: "2-digit", minute: "2-digit" }
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
-              {sessions.length > 5 && (
+              {sessions.length > 12 && (
                 <div className="mt-4 text-center">
                   <Link
                     to="/profile"
@@ -349,6 +372,24 @@ export default function Dashboard() {
               </Link>
             </div>
 
+            {/* OSINT Nexus Card */}
+            <div className="group bg-gradient-to-br from-cyan-900/10 to-blue-900/10 border border-cyan-500/20 rounded-xl p-6 hover:border-cyan-500/40 transition-all cursor-pointer relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
+                <Search className="w-24 h-24 text-cyan-500 transform -rotate-12" />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-2">OSINT Nexus</h3>
+              <p className="text-sm text-gray-400 mb-4 relative z-10">
+                Run comprehensive reconnaissance on domains, IPs, phones, and
+                images with AI correlation.
+              </p>
+              <Link
+                to="/osint"
+                className="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition relative z-10"
+              >
+                Launch Scanner <Globe className="w-4 h-4" />
+              </Link>
+            </div>
+
             {/* Recovery Tool Card */}
             <div className="group bg-gradient-to-br from-indigo-900/10 to-purple-900/10 border border-indigo-500/20 rounded-xl p-6 hover:border-indigo-500/40 transition-all cursor-pointer relative overflow-hidden">
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
@@ -370,27 +411,45 @@ export default function Dashboard() {
             </div>
 
             {/* Recent Logs List */}
-            <div className="bg-[#121212] border border-white/10 rounded-xl p-5 shadow-xl max-h-[400px] overflow-y-auto custom-scrollbar">
+            <div className="bg-[#121212] border border-white/10 rounded-xl p-5 shadow-xl max-h-[500px] overflow-y-auto custom-scrollbar">
               <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
                 Audit Log
               </h3>
               <div className="space-y-4">
-                {activity_logs.slice(0, 10).map((log) => (
-                  <div
-                    key={log._id}
-                    className="relative pl-4 border-l-2 border-white/10"
-                  >
-                    <div className="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-cyan-500"></div>
-                    <p className="text-sm text-gray-200 font-medium">
-                      {log.event}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {new Date(log.timestamp).toLocaleTimeString()} •{" "}
-                      {log.ip === "Unknown" ? "Local" : log.ip}
-                    </p>
-                  </div>
-                ))}
+                {[...activity_logs]
+                  .sort(
+                    (a, b) =>
+                      new Date(b.last_activity) - new Date(a.last_activity),
+                  )
+                  .slice(0, 6)
+                  .map((log) => (
+                    <div
+                      key={log._id}
+                      className="relative pl-4 border-l-2 border-white/10"
+                    >
+                      <div className="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-cyan-500"></div>
+                      <p className="text-sm text-gray-200 font-medium">
+                        {log.event}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {parseUTC(log.timestamp).toLocaleTimeString("en-IN", {
+                          timeZone: "Asia/Kolkata",
+                        })}{" "}
+                        • {log.ip === "Unknown" ? "Local" : log.ip}
+                      </p>
+                    </div>
+                  ))}
               </div>
+              {activity_logs.length > 6 && (
+                <div className="mt-4 text-center">
+                  <Link
+                    to="/profile"
+                    className="text-xs text-cyan-500 hover:text-cyan-400 transition"
+                  >
+                    View All Logs
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>

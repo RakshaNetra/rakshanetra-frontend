@@ -5,26 +5,34 @@ import {
   Smartphone,
   Shield,
   AlertTriangle,
-  CheckCircle,
   Cpu,
-  Battery,
-  Wifi,
   Layers,
   Unlock,
   ArrowLeft,
   Activity,
-  Info,
 } from "lucide-react";
 
 export default function DeviceDetailsPage() {
   const [deviceData, setDeviceData] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
 
+  const [permPage, setPermPage] = React.useState(1);
+  const [appsPage, setAppsPage] = React.useState(1);
+
+  const limit = 10;
+
   React.useEffect(() => {
+    const cachedDevice = localStorage.getItem("device_cache");
+    if (cachedDevice) {
+      setDeviceData(JSON.parse(cachedDevice));
+      setLoading(false);
+    }
+
     const fetchData = async () => {
       try {
         const response = await getDeviceData();
         setDeviceData(response.data);
+        localStorage.setItem("device_cache", JSON.stringify(response.data));
       } catch (error) {
         console.error("Error fetching device data", error);
       } finally {
@@ -72,6 +80,16 @@ export default function DeviceDetailsPage() {
     ? Object.values(malware_scan_page.data).filter((m) => m.malicious).length
     : 0;
   const deviceInfo = device_info_page?.data?.device_info || {};
+
+  const paginatedPermissions = permission_checker_page.data.slice(
+    (permPage - 1) * limit,
+    permPage * limit,
+  );
+
+  const paginatedApps = app_scan_page.data.slice(
+    (appsPage - 1) * limit,
+    appsPage * limit,
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#050505] via-[#0a0a0a] to-[#111] text-white font-sans p-4 md:p-8">
@@ -163,7 +181,7 @@ export default function DeviceDetailsPage() {
                           </span>
                         )}
                       </div>
-                    )
+                    ),
                   )}
                 </div>
               </div>
@@ -211,7 +229,7 @@ export default function DeviceDetailsPage() {
                   <Unlock className="w-4 h-4 text-amber-500" /> Permission Audit
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {permission_checker_page.data.map((app, idx) => (
+                  {paginatedPermissions.map((app, idx) => (
                     <div
                       key={idx}
                       className="bg-white/5 p-4 rounded-lg border border-white/5"
@@ -246,6 +264,25 @@ export default function DeviceDetailsPage() {
                     </div>
                   ))}
                 </div>
+                <div className="flex justify-between mt-4">
+                  <button
+                    disabled={permPage === 1}
+                    onClick={() => setPermPage((p) => p - 1)}
+                    className="px-3 py-1 bg-white/5 border border-white/10 rounded disabled:opacity-30"
+                  >
+                    Previous
+                  </button>
+
+                  <button
+                    disabled={
+                      permPage * limit >= permission_checker_page.data.length
+                    }
+                    onClick={() => setPermPage((p) => p + 1)}
+                    className="px-3 py-1 bg-white/5 border border-white/10 rounded disabled:opacity-30"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             )}
 
@@ -257,7 +294,7 @@ export default function DeviceDetailsPage() {
                   Applications
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {app_scan_page.data.map((app, idx) => (
+                  {paginatedApps.map((app, idx) => (
                     <div
                       key={idx}
                       className="p-3 bg-white/5 rounded-lg border border-white/5 hover:border-white/20 transition group"
@@ -298,6 +335,23 @@ export default function DeviceDetailsPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+                <div className="flex justify-between mt-4">
+                  <button
+                    disabled={appsPage === 1}
+                    onClick={() => setAppsPage((p) => p - 1)}
+                    className="px-3 py-1 bg-white/5 border border-white/10 rounded disabled:opacity-30"
+                  >
+                    Previous
+                  </button>
+
+                  <button
+                    disabled={appsPage * limit >= app_scan_page.data.length}
+                    onClick={() => setAppsPage((p) => p + 1)}
+                    className="px-3 py-1 bg-white/5 border border-white/10 rounded disabled:opacity-30"
+                  >
+                    Next
+                  </button>
                 </div>
               </div>
             )}
